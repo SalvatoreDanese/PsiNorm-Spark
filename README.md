@@ -1,4 +1,4 @@
-# TestSpark1
+# PsiNorm-Spark
 
 data.txt contains example data.
 
