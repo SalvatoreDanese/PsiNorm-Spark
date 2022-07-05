@@ -49,7 +49,7 @@ object Utility {
   def logMatrix(m: RowMatrix): IndexedRowMatrix = {
     val indexedRM= toIndexRowMatrix(m)
     val logRDD = indexedRM.rows.map{
-      case IndexedRow(i, values) => (i,Vectors.dense(values.toArray.map(x => log(x))))
+      case IndexedRow(i, values) => (i,Vectors.dense(values.toArray.map(x => log(x+1))))
     }
     val logMat: IndexedRowMatrix = new IndexedRowMatrix(logRDD.values.zipWithIndex.map({
       case (row, idx) => IndexedRow(idx, row)}))
