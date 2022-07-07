@@ -21,8 +21,6 @@ object PsiNormV4 {
     val nCols: Int = parsedData.take(1)(0).length
     nRows = sc.broadcast(parsedData.count())
 
-    val nRows2 = parsedData.count()
-
     val zero: Array[Double] = Array.fill[Double](nCols)(0)
     colSums = sc.broadcast(parsedData.mapPartitions(preProcessing).
       aggregate(zero)(aggregate, combine))
