@@ -15,7 +15,7 @@ object PsiNormV4 {
     val conf = new SparkConf().setAppName("PsiNormTest1").setMaster("local[2]").set("spark.executor.memory", "1g")
     val sc = new SparkContext(conf)
 
-    val data = sc.textFile("sc_10x.count2.csv")
+    val data = sc.textFile("sc_10x.count2.csv", 8)
 
     val parsedData: RDD[Array[Double]] = data.map(s => (s.split(',').map(_.toDouble))).cache()
     val nCols: Int = parsedData.take(1)(0).length
@@ -25,7 +25,7 @@ object PsiNormV4 {
     colSums = sc.broadcast(parsedData.mapPartitions(preProcessing).
       aggregate(zero)(aggregate, combine))
 
-    val normalized = parsedData.mapPartitions(normalization).collect()
+    val normalized = parsedData.mapPartitions(normalization).map(_.mkString(",")).saveAsTextFile("outFile")
 
 
 
