@@ -26,5 +26,6 @@ object GenerateCSV {
 
     }
   }
+  pw.close()
 
 }
