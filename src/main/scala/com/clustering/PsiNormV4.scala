@@ -1,10 +1,13 @@
-package com.clustering
-
 import org.apache.log4j.Logger
+import org.apache.spark
+import org.apache.spark.mllib.clustering.KMeans
+import org.apache.spark.mllib.feature.PCA
+import org.apache.spark.mllib.linalg.distributed.RowMatrix
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
 
-import math.{log1p}
+import math.log1p
 import scala.collection.mutable.ArrayBuffer
 
 object PsiNormV4 {
@@ -15,10 +18,11 @@ object PsiNormV4 {
   def main(args: Array[String]): Unit = {
 
 
-    val conf = new SparkConf().setAppName("PsiNormTest1").setMaster("yarn")
+    val conf = new SparkConf().setAppName("PsiNormTest").setMaster("yarn").set("spark.driver.maxResultSize", "40g")
     val sc = new SparkContext(conf)
 
-    val data = sc.textFile("dataset.csv")
+    val data = sc.textFile("dataset5.csv")
+
 
     val parsedData: RDD[Array[Double]] = data.map(s => (s.split(',').map(_.toDouble))).cache()
     val nCols: Int = parsedData.take(1)(0).length
@@ -30,7 +34,33 @@ object PsiNormV4 {
 
 
     val normalized = parsedData.mapPartitions(normalization(sums, numberOfRows))
-    println("Done")
+    normalized.take(1)(0).foreach(d => println(d))
+
+    val normalizedVectors: RDD[Vector] = normalized.map( it =>  Vectors.dense(it) )
+
+    val pca = new PCA(100).fit(normalizedVectors).transform(normalizedVectors)
+
+    pca.take(10).foreach(v => println(v))
+
+    val numClusters = 2
+    val numIterations = 20
+    val clusters = KMeans.train(pca, numClusters, numIterations)
+    
+    
+    val centers = clusters.clusterCenters
+    
+    println("Centers:")
+    centers.foreach(v => v.toArray.foreach(d => print(d +", ")))
+
+
+    val WSSSE = clusters.computeCost(pca)
+    println(s"Within Set Sum of Squared Errors = $WSSSE")
+
+
+    /*val rwmat = new RowMatrix(normalizedVectors)
+    val pc = rwmat.computePrincipalComponents(10)
+    val projected = rwmat.multiply(pc)
+    projected.rows.take(1).foreach(v => v.toArray.foreach(d => println(d)))*/
 
 
   }
