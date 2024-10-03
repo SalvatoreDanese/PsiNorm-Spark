@@ -1,3 +1,5 @@
+import org.apache.spark.ml.clustering.KMeans
+import org.apache.spark.ml.feature.{PCA, VectorAssembler}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
@@ -69,6 +71,50 @@ object PsiNormV4 {
     // Mostra i risultati normalizzati
     normalizedDF.select("normalized_features").show(10, truncate = false)
 
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Assemblare i dati normalizzati in un vettore per la PCA e il clustering
+    val assembler = new VectorAssembler()
+      .setInputCols(dfNumeric.columns)
+      .setOutputCol("features")
+
+    val assembledDF = assembler.transform(normalizedDF)
+
+    // Applica PCA per ridurre le dimensioni a 100 componenti principali
+    val pca = new PCA()
+      .setInputCol("features")
+      .setOutputCol("pca_features")
+      .setK(100) // Riduci a 100 dimensioni
+      .fit(assembledDF)
+
+    val pcaDF = pca.transform(assembledDF).select("pca_features")
+    pcaDF.show(10, truncate = false)
+
+    // Clustering KMeans sui dati ridotti
+    val numClusters = 2
+    val kmeans = new KMeans()
+      .setK(numClusters)
+      .setSeed(1L)
+      .setFeaturesCol("pca_features")
+      .setPredictionCol("cluster")
+
+    // Addestra il modello KMeans
+    val model = kmeans.fit(pcaDF)
+
+    // Assegna i cluster
+    val clusteredDF = model.transform(pcaDF)
+    clusteredDF.show(10, truncate = false)
+
+    // Mostra i centri dei cluster
+    val centers = model.clusterCenters
+    println("Centri dei cluster:")
+    centers.foreach(center => println(center))
+
+    // Calcola il costo WSSSE
+    val WSSSE = model.computeCost(pcaDF)
+    println(s"Within Set Sum of Squared Errors (WSSSE) = $WSSSE")
+
     spark.stop()
   }
+
 }
