@@ -1,3 +1,4 @@
+import org.apache.spark.ml.evaluation.ClusteringEvaluator
 import org.apache.spark.ml.clustering.KMeans
 import org.apache.spark.ml.feature.{PCA, VectorAssembler}
 import org.apache.spark.sql.functions._
@@ -9,17 +10,18 @@ object PsiNormV4 {
 
     val spark = SparkSession.builder
       .appName("PsiNormCSVTest")
-      .master("local[2]")
+      .master("yarn")
       .config("spark.driver.maxResultSize", "40g")
       .getOrCreate()
 
     // Percorso del file CSV
-    val filePath = "sc_10x.countInt.csv"
+    val filePath = "GSM7844594_NS.csv"
 
     // Leggi il CSV assicurandoti che Spark infersca lo schema
     val df = spark.read
       .option("header", "false") // Se il CSV ha un'intestazione
       .option("inferSchema", "true") // Inferisci automaticamente il tipo di dato
+	.option("maxColumns", "50000")
       .csv(filePath)
 
     // Mostra lo schema per confermare i tipi di dato inferiti
@@ -92,6 +94,11 @@ object PsiNormV4 {
 
     // Clustering KMeans sui dati ridotti
     val numClusters = 2
+  val evaluator = new ClusteringEvaluator()
+      .setFeaturesCol("pca_features")
+      .setPredictionCol("cluster")
+      .setMetricName("silhouette")
+
     val kmeans = new KMeans()
       .setK(numClusters)
       .setSeed(1L)
@@ -104,15 +111,13 @@ object PsiNormV4 {
     // Assegna i cluster
     val clusteredDF = model.transform(pcaDF)
     clusteredDF.show(10, truncate = false)
-
+	 val silhouette = evaluator.evaluate(clusteredDF)
     // Mostra i centri dei cluster
     val centers = model.clusterCenters
     println("Centri dei cluster:")
     centers.foreach(center => println(center))
 
-    // Calcola il costo WSSSE
-    val WSSSE = model.computeCost(pcaDF)
-    println(s"Within Set Sum of Squared Errors (WSSSE) = $WSSSE")
+  
 
     spark.stop()
   }
