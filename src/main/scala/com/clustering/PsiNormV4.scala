@@ -82,19 +82,15 @@ object PsiNormV4 {
 
   }
 
-  def normalization(colSums: Array[Double], nRows: Long)(it: Iterator[Array[Double]]): Iterator[Array[Double]] = {
-
-    var arr: ArrayBuffer[Array[Double]] = new ArrayBuffer[Array[Double]]()
-    while(it.hasNext) {
-      arr.+=(it.next().
-        zip(colSums).
-        map{
-          x => x._1 * nRows/x._2
+ def normalization(colSums: Array[Double], nRows: Long)(it: Iterator[Array[Double]]): Iterator[Array[Double]] = {
+    val arr: ArrayBuffer[Array[Double]] = new ArrayBuffer[Array[Double]]()
+    while (it.hasNext) {
+        arr.+=(it.next().zip(colSums).map { case (value, sum) =>
+            if (sum != 0) value * nRows / sum else 0.0 // Se `sum` è zero, restituisce 0.0 invece di NaN
         })
     }
-
     arr.iterator
-  }
+}
 
   def aggregate(accu: Array[Double], arr: Array[Double]): Array[Double] = {
     for (i <- 0 to arr.length - 1) {
