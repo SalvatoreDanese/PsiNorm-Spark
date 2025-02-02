@@ -11,8 +11,8 @@ object deltaPerc {
     val conf = new SparkConf().setAppName("PsiNormTest1").setMaster("local[2]").set("spark.executor.memory", "1g")
     val sc = new SparkContext(conf)
 
-    val data1 = sc.textFile("normalization.csv")
-    val data2 = sc.textFile("norm.csv")
+    val data1 = sc.textFile("normalizedSpark.csv")
+    val data2 = sc.textFile("normalizedR.csv")
 
     val parsedData1: Array[Array[Double]] = data1.map(s => (s.split(',').map(_.toDouble))).collect()
     val parsedData2: Array[Array[Double]] = data2.map(s => (s.split(',').map(_.toDouble))).collect()
